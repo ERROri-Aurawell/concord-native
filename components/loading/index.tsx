@@ -1,7 +1,14 @@
 import { Animated, View, Text, StyleSheet } from "react-native";
 import { useState, useEffect, useRef } from "react";
 
-export default function Loading() {
+type Props = {
+  screen: number;
+  setScreen: React.Dispatch<React.SetStateAction<number>>;
+  authKey: string | null
+  setKey: React.Dispatch<React.SetStateAction<string | null>>;
+};
+
+export default function Loading({ screen, setScreen, authKey, setKey }: Props) {
   const levels = ["", ".", "..", "..."];
   const [dot, setDot] = useState<number>(0);
   const rotacao = useRef(new Animated.Value(0)).current; // valor animado

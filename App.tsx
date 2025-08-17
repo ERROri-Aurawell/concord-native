@@ -1,14 +1,17 @@
+declare global {
+  interface Array<T> {
+    excludes(value: T): boolean;
+  }
+}
+
+// 2. Implementar o método
+Array.prototype.excludes = function <T>(this: T[], value: T): boolean {
+  return !this.includes(value);
+};
+
 import { Text, View, Button, Image, StyleSheet, TouchableOpacity } from "react-native";
 import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const testStorage = async () => {
-  await AsyncStorage.setItem('@teste', '123');
-  const value = await AsyncStorage.getItem('@teste');
-  console.log('AsyncStorage:', value); // Deve mostrar "123"
-};
-
-testStorage();
 
 // salvar
 //await AsyncStorage.setItem('@token', '12345');
@@ -17,10 +20,13 @@ testStorage();
 // remover
 //await AsyncStorage.removeItem('@token');
 
+AsyncStorage.clear()
+
 import Login1 from "./components/login1"
 import Login1G from "./components/login1G"
 import Main from "./components/main"
 import Loading from "./components/loading";
+import Cadastrar from "./components/cadastrar"
 import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 export default function Index() {
@@ -33,11 +39,14 @@ export default function Index() {
 
   ]
 
+  const lista: number[] = [0, 1, 2, 3, 4];
+
   const screens = [
     { name: "loading", page: Loading },
     { name: "login1G", page: Login1G },
     { name: "loggin1", page: Login1 },
     { name: "loggin2", page: Login1 },
+    { name: "cadastrar", page: Cadastrar },
     { name: "main", page: Main },
     { name: "config", page: Login1 },
     { name: "inChat", page: Login1 },
@@ -49,7 +58,8 @@ export default function Index() {
   ]
 
   const [sideMenu, setSideMenu] = useState(false)
-  const [screen, setScreen] = useState(0);
+  const [screen, setScreen] = useState<number>(0);
+  const [authKey, setKey] = useState<string | null>(null);
   const CurrentScreen = screens[screen].page;
 
   useEffect(() => {
@@ -57,17 +67,20 @@ export default function Index() {
       .then((key: string | null) => {
         if (key === null) {
           console.log("Sem chave");
+          setScreen(2);
         } else {
-          console.log("Com chave");
+          console.log("Com chave:", key);
+          setKey(key);   // <- atualiza o estado
+          setScreen(5);
         }
       })
       .catch((error) => {
         console.error("Erro ao ler a chave:", error);
       });
-  }, []);
+  }, []); // só executa uma vez ao monta
 
   //native
-  
+
   return (
     <View
       style={{
@@ -76,7 +89,7 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      {(screen != 0) && <View >
+      {lista.excludes(screen) && <View >
         {sideMenu && <View style={styles.openClose} >
           {icons.map((icon, index) => (
             <TouchableOpacity key={`${icon.name}-${index}`} style={styles.button} onPress={() => setScreen(icon.pageID)}>
@@ -92,7 +105,7 @@ export default function Index() {
         <Button title=">" onPress={() => setSideMenu(prev => !prev)} />
       </View>}
       <View style={styles.fundo}>
-        <CurrentScreen />
+        <CurrentScreen screen={screen} setScreen={setScreen} authKey={authKey} setKey={setKey} />
       </View>
 
     </View>
@@ -106,7 +119,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     bottom: 0,
-    width: 100, // largura da barra lateral
+    width: 120, // largura da barra lateral
     backgroundColor: 'gray',
     flexDirection: 'column',
     paddingTop: 20, // se quiser espaçamento no topo

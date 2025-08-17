@@ -1,13 +1,19 @@
 import { Text, View, Button, Image, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import React, { useState, useEffect } from 'react';
 
+type Props = {
+    screen: number;
+    setScreen: React.Dispatch<React.SetStateAction<number>>;
+    authKey: string | null
+    setKey: React.Dispatch<React.SetStateAction<string | null>>;
+};
 
-export default function Main() {
+export default function Main({ screen, setScreen, authKey, setKey }: Props) {
     const [amigos, setAmigos] = useState<Chat[]>([]);
     const [amigosOriginal, setAmigosOriginal] = useState<Chat[]>([]);
     const [vazio, setVazio] = useState<boolean>(false);
     const [busca, setBusca] = useState('');
-    const key = "1-viniciusavila4080@gmail.com-7db940709d83364a8257d6f361b6e13d21622e40"
+    //const key = "1-viniciusavila4080@gmail.com-7db940709d83364a8257d6f361b6e13d21622e40"
     const [dados, setDados] = useState("{ \"nome\": \"Aurawell\" }")
 
     interface Data {
@@ -57,7 +63,9 @@ export default function Main() {
     }
 
     useEffect(() => {
-        adicionar(key)
+        if (authKey != null) {
+            adicionar(authKey)
+        }
     }, [])
 
     useEffect(() => {
@@ -90,7 +98,7 @@ export default function Main() {
                 if (contato.tipo == 2) { // Se for um contato normal
                     // Separa "[\"1\"",\"2\""]" em [1,2] e pega o nome que é diferente do próprio
                     try {
-                        const membros : string[] = JSON.parse(contato.chatNome);
+                        const membros: string[] = JSON.parse(contato.chatNome);
                         const userNome = JSON.parse(dados).nome;
                         const filtrado = membros.filter(item => item !== userNome); // Filtra o nome do usuário atual
                         displayName = filtrado[0]; // Pega o primeiro nome filtrado

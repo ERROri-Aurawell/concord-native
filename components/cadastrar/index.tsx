@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = {
     screen: number;
@@ -9,65 +8,29 @@ type Props = {
     setKey: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
-interface loginResponse {
-  newAccount: boolean;
-  key: string;
-}
-
-const API_URL = "https://apiconcord.dev.vilhena.ifro.edu.br";
-//const API_URL = "http://192.168.1.106:9000";
-const ASYNC_STORAGE_AUTH_KEY = "@key";
-
 export default function Login1({ screen, setScreen, authKey, setKey }: Props) {
+    const [nome, setNome] = useState<string>('');
     const [email, setEmail] = useState<string>('');
     const [senha, setSenha] = useState<string>('');
 
-    async function login(email : string, senha : string): Promise<void> {
-        const requestOptions: RequestInit = {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "email" : email, "senha" : senha }),
-        };
-
-        try {
-            const resposta = await fetch(`${API_URL}/login/`, requestOptions);
-
-            console.log(resposta)
-
-            if (resposta.ok) {
-                const data: loginResponse = await resposta.json();
-
-                console.log(data.key)
-
-                await AsyncStorage.setItem(ASYNC_STORAGE_AUTH_KEY, data.key);
-                setKey(data.key)
-
-                if(data.newAccount){
-                    setScreen(0) //ALTERAR ISSO AQUI PRA PÀGINA LOGIN2 PELO AMOR DE DEUS NÃO ESQUECER
-                }else{
-                    setScreen(5)
-                }
-
-            } else {
-                console.warn("Erro na resposta:", resposta.status, resposta.statusText);
-                Alert.alert("Erro na resposta:", resposta.statusText)
-            }
-        } catch (error) {
-            console.warn("Erro na requisição:", error);
-        }
-    }
-
-    const handleSubmit = async () => {
-        if (!email || !senha) {
+    const handleSubmit = () => {
+        if (!nome || !email || !senha) {
             Alert.alert('Erro', 'Por favor, preencha todos os campos.');
             return;
         }
-        //Alert.alert('Sucesso', `\nEmail: ${email}`);
-
-        await login(email, senha);
+        Alert.alert('Sucesso', `Nome: ${nome}\nEmail: ${email}`);
+        // Aqui você pode enviar para API
     };
     return (
         <View style={styles.container}>
+            <Text style={styles.label}>Nome:</Text>
+            <TextInput
+                style={styles.input}
+                value={nome}
+                onChangeText={setNome}
+                placeholder="Digite seu nome"
+            />
+
             <Text style={styles.label}>Email:</Text>
             <TextInput
                 style={styles.input}
@@ -89,7 +52,7 @@ export default function Login1({ screen, setScreen, authKey, setKey }: Props) {
             <Button title="Enviar" onPress={handleSubmit} />
 
             <View style={styles.botao2} >
-                <Button title="Criar Conta" onPress={() => setScreen(4)} ></Button>
+                <Button title="Fazer Login" onPress={() => setScreen(2)} ></Button>
             </View>
 
             <View style={styles.botao2} >
