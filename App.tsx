@@ -20,7 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // remover
 //await AsyncStorage.removeItem('@token');
 
-AsyncStorage.clear()
+//AsyncStorage.clear()
 
 import Login1 from "./components/login1"
 import Login1G from "./components/login1G"
@@ -54,29 +54,37 @@ export default function Index() {
     { name: "chats", page: Login1 },
     { name: "block", page: Login1 },
     { name: "blocked", page: Login1 },
-    { name: "createChat", page: Login1 }
+    { name: "createChat", page: Login1 },
+    { name: "chat", page: Login1 },
   ]
 
   const [sideMenu, setSideMenu] = useState(false)
   const [screen, setScreen] = useState<number>(0);
   const [authKey, setKey] = useState<string | null>(null);
+  const [userData, setUserData] = useState<string | null>(null)
   const CurrentScreen = screens[screen].page;
 
   useEffect(() => {
     AsyncStorage.getItem('@key')
       .then((key: string | null) => {
         if (key === null) {
-          console.log("Sem chave");
           setScreen(2);
         } else {
-          console.log("Com chave:", key);
-          setKey(key);   // <- atualiza o estado
+          setKey(key);
           setScreen(5);
         }
       })
       .catch((error) => {
-        console.error("Erro ao ler a chave:", error);
+        console.error("Erro ao ler a chave: ", error);
       });
+
+    AsyncStorage.getItem('@userData').then((userData : string | null)=>{
+      if (userData !== null){
+        setUserData(userData)
+      }
+    }).catch((error) =>{
+      console.error("Erro ao ler os dados: ", error)
+    })
   }, []); // só executa uma vez ao monta
 
   //native
@@ -105,7 +113,7 @@ export default function Index() {
         <Button title=">" onPress={() => setSideMenu(prev => !prev)} />
       </View>}
       <View style={styles.fundo}>
-        <CurrentScreen screen={screen} setScreen={setScreen} authKey={authKey} setKey={setKey} />
+        <CurrentScreen screen={screen} setScreen={setScreen} authKey={authKey} setKey={setKey} userData={userData} setUserData={setUserData} />
       </View>
 
     </View>

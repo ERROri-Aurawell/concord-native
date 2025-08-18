@@ -7,44 +7,88 @@ type Props = {
     setScreen: React.Dispatch<React.SetStateAction<number>>;
     authKey: string | null
     setKey: React.Dispatch<React.SetStateAction<string | null>>;
+    userData: string | null;
+    setUserData: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 interface loginResponse {
-  newAccount: boolean;
-  key: string;
+    newAccount: boolean;
+    key: string;
 }
+
+interface dataRequest {
+    descricao: string;
+    filtros: string | number;
+    foto: number;
+    id: number;
+    nome: string;
+}
+
+//{"descricao": "Novo no Concord!", "filtros": "1", "foto": 2, "id": 19, "nome": "Andrew"}
 
 const API_URL = "https://apiconcord.dev.vilhena.ifro.edu.br";
 //const API_URL = "http://192.168.1.106:9000";
 const ASYNC_STORAGE_AUTH_KEY = "@key";
 
-export default function Login1({ screen, setScreen, authKey, setKey }: Props) {
+export default function Login1({ screen, setScreen, authKey, setKey, userData, setUserData }: Props) {
     const [email, setEmail] = useState<string>('');
     const [senha, setSenha] = useState<string>('');
 
-    async function login(email : string, senha : string): Promise<void> {
+    function splitKEY(key: string) {
+        const [id, ...rest] = key.split("-");
+        const after = rest.join("-");
+        const [email, ...rest2] = after.split("-");
+        const senha = rest2.join('-');
+
+        return [id, email, senha];
+    }
+
+    async function getData(chave: string) {
+        const requestOptions = {
+            method: 'GET',
+            headers: { "Content-Type": "application/json" },
+        }
+        try {
+            const resposta = await fetch(`https://apiconcord.dev.vilhena.ifro.edu.br/user/${splitKEY(chave)[0]}`, requestOptions);
+            if (resposta.ok) {
+                // mano?
+                const data: dataRequest = await resposta.json();
+                const dataString : string = JSON.stringify(data)
+                await AsyncStorage.setItem("@userData", dataString);
+                setUserData(dataString)
+                return true
+            }
+            return false
+
+        } catch (error) {
+            console.error(error);
+            return false
+        }
+    }
+
+    async function login(email: string, senha: string): Promise<void> {
         const requestOptions: RequestInit = {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "email" : email, "senha" : senha }),
+            body: JSON.stringify({ "email": email, "senha": senha }),
         };
 
         try {
             const resposta = await fetch(`${API_URL}/login/`, requestOptions);
-
-            console.log(resposta)
-
             if (resposta.ok) {
                 const data: loginResponse = await resposta.json();
+                const response2: boolean = await getData(data.key);
 
-                console.log(data.key)
+                if (!response2) {
+                    Alert.alert("Erro ao puxar dados do perfil")
+                    return
+                }
 
                 await AsyncStorage.setItem(ASYNC_STORAGE_AUTH_KEY, data.key);
                 setKey(data.key)
-
-                if(data.newAccount){
+                if (data.newAccount) {
                     setScreen(0) //ALTERAR ISSO AQUI PRA PÀGINA LOGIN2 PELO AMOR DE DEUS NÃO ESQUECER
-                }else{
+                } else {
                     setScreen(5)
                 }
 

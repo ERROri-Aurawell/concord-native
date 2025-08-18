@@ -1,4 +1,4 @@
-import { View, Text, Button, StyleSheet, Image } from "react-native"
+import { View, Text, Button, StyleSheet, Image, Alert } from "react-native"
 import { useState } from "react";
 import { GoogleSignin, User, statusCodes } from "@react-native-google-signin/google-signin"
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,8 +17,10 @@ const ASYNC_STORAGE_AUTH_KEY = "@key";
 type Props = {
   screen: number;
   setScreen: React.Dispatch<React.SetStateAction<number>>;
-  authKey: string | null
+  authKey: string | null;
   setKey: React.Dispatch<React.SetStateAction<string | null>>;
+  userData: string | null;
+  setUserData: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 interface GoogleLoginResponse {
@@ -26,13 +28,53 @@ interface GoogleLoginResponse {
   key: string;
 }
 
+interface dataRequest {
+  descricao: string;
+  filtros: string;
+  foto: number;
+  id: number;
+  nome: string;
+}
+
 GoogleSignin.configure({
   webClientId: "427290146113-nv1kvo2d9e9iqk0g62n6pkkjoq2rp387.apps.googleusercontent.com",
   iosClientId: "427290146113-a0jecoj08h9i03rbfc868m1t5t4osc7q.apps.googleusercontent.com"
 })
 
-export default function Login1G({ screen, setScreen, authKey, setKey }: Props) {
+export default function Login1G({ screen, setScreen, authKey, setKey, userData, setUserData }: Props) {
   const [auth, setAuth] = useState<User | null>(null)
+
+  function splitKEY(key: string) {
+    const [id, ...rest] = key.split("-");
+    const after = rest.join("-");
+    const [email, ...rest2] = after.split("-");
+    const senha = rest2.join('-');
+
+    return [id, email, senha];
+  }
+
+  async function getData(chave: string) {
+    const requestOptions = {
+      method: 'GET',
+      headers: { "Content-Type": "application/json" },
+    }
+    try {
+      const resposta = await fetch(`https://apiconcord.dev.vilhena.ifro.edu.br/user/${splitKEY(chave)[0]}`, requestOptions);
+      if (resposta.ok) {
+        // mano?
+        const data: dataRequest = await resposta.json();
+        const dataString: string = JSON.stringify(data)
+        await AsyncStorage.setItem("@userData", dataString);
+        setUserData(dataString)
+        return true
+      }
+      return false
+
+    } catch (error) {
+      console.error(error);
+      return false
+    }
+  }
 
   async function handleGoogleSignIn() {
     try {
@@ -40,17 +82,15 @@ export default function Login1G({ screen, setScreen, authKey, setKey }: Props) {
       const signInResponse = await GoogleSignin.signIn() as any;
       const userInfo = signInResponse.data;
       setAuth(userInfo);
-      console.log("------------------")
-      console.log("Signed in successfully!", userInfo)
       await loginGoogle(userInfo.idToken);
 
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        console.log("user cancelled the login flow");
+        console.warn("user cancelled the login flow");
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        console.log("operation (e.g. sign in) is in progress already");
+        console.warn("operation (e.g. sign in) is in progress already");
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        console.log("play services not available or outdated");
+        console.warn("play services not available or outdated");
       } else {
         console.error(error);
       }
@@ -63,20 +103,19 @@ export default function Login1G({ screen, setScreen, authKey, setKey }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ credential }),
     };
-
-    console.log("=-=-=-=-=-=")
-    console.log(requestOptions)
-    console.log("=-=-=-=-=-=")
-
     try {
       const resposta = await fetch(`${API_URL}/cadastrar/google`, requestOptions);
 
       if (resposta.ok) {
         const data: GoogleLoginResponse = await resposta.json();
+        const response2: boolean = await getData(data.key);
+        if (!response2) {
+          Alert.alert("Erro ao puxar dados do perfil")
+          return
+        }
 
         await AsyncStorage.setItem(ASYNC_STORAGE_AUTH_KEY, data.key);
         setKey(data.key)
-        
         if (data.newAccount) {
           setScreen(0) //ALTERAR ISSO AQUI PRA PÀGINA LOGIN2 PELO AMOR DE DEUS NÃO ESQUECER
         } else {

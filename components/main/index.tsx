@@ -6,19 +6,45 @@ type Props = {
     setScreen: React.Dispatch<React.SetStateAction<number>>;
     authKey: string | null
     setKey: React.Dispatch<React.SetStateAction<string | null>>;
+    userData: string | null;
+    setUserData: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
-export default function Main({ screen, setScreen, authKey, setKey }: Props) {
+import Chat from "../chat";
+
+export default function Main({ screen, setScreen, authKey, setKey, userData, setUserData }: Props) {
     const [amigos, setAmigos] = useState<Chat[]>([]);
     const [amigosOriginal, setAmigosOriginal] = useState<Chat[]>([]);
     const [vazio, setVazio] = useState<boolean>(false);
     const [busca, setBusca] = useState('');
-    //const key = "1-viniciusavila4080@gmail.com-7db940709d83364a8257d6f361b6e13d21622e40"
-    const [dados, setDados] = useState("{ \"nome\": \"Aurawell\" }")
+    const [dados, setDados] = useState<string>(userData ?? "{}");
+    const [onChat, setOnChat] = useState<boolean>(false);
+    const [chatData, setChatData] = useState<chatData>({
+        id: 0,
+        chatNome: "",
+        foto: 0,
+        membros: ""
+    })
 
-    interface Data {
-        nome: string
+    const icons = [
+        require("../../public/images/eclipse1.png"),
+        require("../../public/images/eclipse2.png"),
+        require("../../public/images/eclipse3.png"),
+        require("../../public/images/eclipse4.png"),
+        require("../../public/images/eclipse5.png"),
+        require("../../public/images/eclipse6.png"),
+        require("../../public/images/eclipse7.png"),
+        require("../../public/images/eclipse8.png"),
+    ];
+    const human = require("../../public/images/human.png");
+
+    interface chatData {
+        id: number;
+        chatNome: string;
+        foto: number;
+        membros: string;
     }
+
 
     interface Chat {
         chatNome: string; // Parece ser uma string JSON
@@ -63,7 +89,7 @@ export default function Main({ screen, setScreen, authKey, setKey }: Props) {
     }
 
     useEffect(() => {
-        if (authKey != null) {
+        if (authKey != null && userData != null) {
             adicionar(authKey)
         }
     }, [])
@@ -82,7 +108,8 @@ export default function Main({ screen, setScreen, authKey, setKey }: Props) {
 
         filterAmigos();
     }, [busca]);
-    return (
+
+    if (!onChat) return (
         <View>
             <View style={styles.arruma2}>
                 <TextInput
@@ -107,17 +134,51 @@ export default function Main({ screen, setScreen, authKey, setKey }: Props) {
                         console.error("Erro ao processar o nome:", error);
                     }
                 } else {
-
                     const userNome = JSON.parse(contato.chatNome);
-
                     displayName = userNome[0]
                 }
-                return (
-                    <View key={contato.id}>
-                        <Text>{displayName}</Text>
-                    </View>
-                );
+
+                if (userData !== null) {
+                    const fotoIndex = contato.foto - 1;
+                    const fotoSource =
+                        contato.foto === 0 || fotoIndex < 0 || fotoIndex >= icons.length
+                            ? human
+                            : icons[fotoIndex];
+                    return (
+                        <View key={contato.id} style={{ flexDirection: "row", alignItems: "center", marginVertical: 5 }}>
+                            <Image
+                                source={fotoSource}
+                                style={{ width: 50, height: 50, borderRadius: 25, marginRight: 10 }}
+                            />
+                            <TouchableOpacity onPress={() => {
+                                setChatData(
+                                    {
+                                        id: contato.id,
+                                        chatNome: contato.chatNome,
+                                        foto: contato.foto,
+                                        membros: contato.membros
+                                    }
+                                );
+                                setOnChat(true)
+                            }} >
+                                <Text>{displayName}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    );
+                } else {
+                    return (
+                        <View>
+                            <Text>userData está vazio</Text>
+                        </View>
+                    )
+                }
             })}
+        </View>
+    )
+    //id: nome.id, nome: nome.chatNome, foto: nome.foto, membros: nome.membros
+    return (
+        <View>
+            <Chat data={chatData} setOnChat={setOnChat} authKey={authKey} ></Chat>
         </View>
     )
 }

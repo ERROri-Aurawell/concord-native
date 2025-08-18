@@ -6,9 +6,11 @@ type Props = {
   setScreen: React.Dispatch<React.SetStateAction<number>>;
   authKey: string | null
   setKey: React.Dispatch<React.SetStateAction<string | null>>;
+  userData: string | null;
+  setUserData: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
-export default function Loading({ screen, setScreen, authKey, setKey }: Props) {
+export default function Loading({ screen, setScreen, authKey, setKey, userData, setUserData }: Props) {
   const levels = ["", ".", "..", "..."];
   const [dot, setDot] = useState<number>(0);
   const rotacao = useRef(new Animated.Value(0)).current; // valor animado

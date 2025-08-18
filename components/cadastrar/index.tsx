@@ -1,26 +1,114 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = {
     screen: number;
     setScreen: React.Dispatch<React.SetStateAction<number>>;
     authKey: string | null
     setKey: React.Dispatch<React.SetStateAction<string | null>>;
+    userData: string | null;
+    setUserData: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
-export default function Login1({ screen, setScreen, authKey, setKey }: Props) {
+interface loginResponse {
+    newAccount: boolean;
+    key: string;
+}
+
+interface dataRequest {
+    descricao: string;
+    filtros: string;
+    foto: number;
+    id: number;
+    nome: string;
+}
+
+const API_URL = "https://apiconcord.dev.vilhena.ifro.edu.br";
+//const API_URL = "http://192.168.1.106:9000";
+const ASYNC_STORAGE_AUTH_KEY = "@key";
+
+export default function Login1({ screen, setScreen, authKey, setKey, userData, setUserData }: Props) {
     const [nome, setNome] = useState<string>('');
     const [email, setEmail] = useState<string>('');
     const [senha, setSenha] = useState<string>('');
 
-    const handleSubmit = () => {
+    function splitKEY(key: string) {
+        const [id, ...rest] = key.split("-");
+        const after = rest.join("-");
+        const [email, ...rest2] = after.split("-");
+        const senha = rest2.join('-');
+
+        return [id, email, senha];
+    }
+
+    async function getData(chave: string) {
+        const requestOptions = {
+            method: 'GET',
+            headers: { "Content-Type": "application/json" },
+        }
+        try {
+            const resposta = await fetch(`https://apiconcord.dev.vilhena.ifro.edu.br/user/${splitKEY(chave)[0]}`, requestOptions);
+            if (resposta.ok) {
+                // mano?
+                const data: dataRequest = await resposta.json();
+                const dataString : string = JSON.stringify(data)
+                await AsyncStorage.setItem("@userData", dataString);
+                setUserData(dataString)
+                return true
+            }
+            return false
+
+        } catch (error) {
+            console.error(error);
+            return false
+        }
+    }
+
+    const handleSubmit = async () => {
         if (!nome || !email || !senha) {
             Alert.alert('Erro', 'Por favor, preencha todos os campos.');
             return;
         }
-        Alert.alert('Sucesso', `Nome: ${nome}\nEmail: ${email}`);
+        //Alert.alert('Sucesso', `Nome: ${nome}\nEmail: ${email}`);
         // Aqui você pode enviar para API
+        await cadastrar(nome, email, senha);
     };
+
+    async function cadastrar(nome: string, email: string, senha: string): Promise<void> {
+        const requestOptions: RequestInit = {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ "nome": nome, "email": email, "senha": senha }),
+        };
+
+        try {
+            const resposta = await fetch(`${API_URL}/cadastrar/`, requestOptions);
+            if (resposta.ok) {
+                const data: loginResponse = await resposta.json();
+                const response2: boolean = await getData(data.key);
+
+                if (!response2) {
+                    Alert.alert("Erro ao puxar dados do perfil")
+                    return
+                }
+
+                await AsyncStorage.setItem(ASYNC_STORAGE_AUTH_KEY, data.key);
+                setKey(data.key)
+                if (data.newAccount) {
+                    setScreen(0) //ALTERAR ISSO AQUI PRA PÀGINA LOGIN2 PELO AMOR DE DEUS NÃO ESQUECER
+                } else {
+                    setScreen(5)
+                }
+
+            } else {
+                console.warn("Erro na resposta:", resposta.status, resposta.statusText);
+                Alert.alert("Erro na resposta:", resposta.statusText)
+            }
+        } catch (error) {
+            console.warn("Erro na requisição:", error);
+        }
+    }
     return (
         <View style={styles.container}>
             <Text style={styles.label}>Nome:</Text>
